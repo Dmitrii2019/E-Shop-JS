@@ -1,95 +1,164 @@
-class GoodsItem {
-    constructor(title = 'товар', price = 0) {
-        this.title = title;
-        this.price = price;
-    }
+const API_URL = 'https://raw.githubusercontent.com/GeekBrainsTutorial/online-store-api/master/responses'
 
-    render() {
-        return `
+const makeGETRequest = (url, callback) => {
+  let xhr;
+
+  if (window.XMLHttpRequest) {
+    xhr = new XMLHttpRequest();
+  } else if (window.ActiveXObject) { 
+    xhr = new ActiveXObject("Microsoft.XMLHTTP");
+  }
+
+  xhr.onreadystatechange = function () {
+    if (xhr.readyState === 4) {
+      callback(xhr.responseText);
+    }
+  }
+
+  const promise = new Promise((res, rej) => {
+    res(xhr.open('GET', url));
+    res(xhr.send());
+    rej('error')
+  })
+}
+
+class GoodsItem {
+  constructor(product_name, price, quantity, result) {
+    this.product_name = product_name;
+    this.price = price;
+    this.quantity = quantity;
+    this.result = result;    
+  }
+
+  render(list='index') {
+    if (list == 'index') {
+      return `
         <div class="col text-center border border-dark">
-          <div class="card-body">
-            <ul class="list-unstyled mt-3 mb-4">
-              <li>${this.title}</li>
-            </ul>
-            <h1 class="card-title pricing-card-title">${this.price}</h1>
-            <button type="button" class="btn btn-lg btn-block btn-outline-primary">купить</button>
-            </div>
+        <div class="card-body">
+          <ul class="list-unstyled mt-3 mb-4">
+            <li>${this.product_name}</li>
+          </ul>
+          <h1 class="card-title pricing-card-title">${this.price}</h1>
+          <button type="button" class="btn btn-lg btn-block btn-outline-primary">купить</button>
           </div>
         </div>
+      </div>
       `;
     }
+    else if (list == 'cart') {
+      return `
+        <div class="col text-center border border-dark">
+        <div class="card-body">
+          <ul class="list-unstyled mt-3 mb-4">
+            <li>${this.product_name}</li>
+            <li>${this.price}</li>
+            <li>кол. - ${this.quantity}</li>
+          </ul>
+          </div>
+        </div>
+      </div>
+      `;
+    }
+    else if (list == 'addCart') {
+      return `
+        <div class="col text-center border border-dark">
+        <div class="card-body">
+          <ul class="list-unstyled mt-3 mb-4">
+            <li>${this.result}</li>
+          </ul>
+          </div>
+        </div>
+      </div>
+      `;
+    }
+  }
 }
 
 class GoodsList {
-    constructor() {
-        this.goods = [];
-    }
+  constructor() {
+    this.goods = [];
+  }
 
-    fetchGoods() {
-        this.goods = [
-            {title: 'Shirt', price: 155},
-            {title: 'Socks', price: 50},
-            {title: 'Jacket', price: 350},
-            {title: 'Shoes', price: 250},
-            {title: 'Shoes', price: 250},
-            {title: 'Shirt', price: 150},
-            {title: 'Shoes', price: 250},
-            {title: 'Shirt', price: 150},
-            {title: 'Shoes', price: 250},
-            {title: 'Shirt', price: 150},
-        ];
-    }
+  fetchGoods(cb, url) {
+    makeGETRequest(`${API_URL}/${url}.json`, (goods) => {
+      this.goods = JSON.parse(goods);
+      cb();
+    })
+  }
 
-    render() {
-        let listHtml = '';
-        this.goods.forEach(good => {
-            const goodItem = new GoodsItem(good.title, good.price);
-            listHtml += goodItem.render();
-        });
-        document.querySelector('.goods-list').innerHTML = listHtml;
+  render(selector, goodItemRender) {
+    let listHtml = '';
+    if (goodItemRender == "index") {
+      this.goods.forEach(good => {
+        const goodItem = new GoodsItem(good.product_name, good.price);
+        listHtml += goodItem.render(`${goodItemRender}`);
+      });
     }
-
-    getTotalSum() {
-        let prices = this.goods.map(function (item) {
-                return item.price
-            }
-        );
-
-        let result = prices.reduce(function (sum, current) {
-            return sum + current;
-        }, 0);
-        document.querySelector('.basket').innerHTML = result;
+    else if (goodItemRender == "cart"){
+      this.goods.contents.forEach(good => {
+        const goodItem = new GoodsItem(good.product_name, good.price, good.quantity);
+        listHtml += goodItem.render(`${goodItemRender}`);
+      });
     }
+    else if (goodItemRender == "addCart") {
+      const goodItem = new GoodsItem('a', 'b', 'c', this.goods.result);
+      listHtml += goodItem.render(`${goodItemRender}`);
+    }
+    document.querySelector(`${selector}`).innerHTML = listHtml;
+  }
+
+  getTotalSum() {
+    const totalSum = this.goods.reduce((acc, item) => {
+      if (!item.price) return acc;
+      return acc + item.price;
+    }, 0);
+    console.log(totalSum);
+  }
 }
 
-class Cart {
-    openCart() {
-    };
+class Basket extends GoodsList {
+  constructor(...args) {
+    super(...args);
+  }
 
-    closeCart() {
-    };
+  getListItems(){
+    this.fetchGoods(() => {
+      this.render('.cart-list', 'cart');
+    }, 'getBasket');
+  }
 
-    сlearCart() {
-    };
+  clearAll() {}
+
+  addItem() {
+    this.fetchGoods(() => {
+      this.render('.add-list', 'addCart');
+    }, 'addToBasket');
+  }
+
+  deleteItem() {
+    this.fetchGoods(() => {
+      this.render('.del-list', 'addCart');
+    }, 'deleteFromBasket');
+  }
 }
 
-class CartItems extends GoodsItem {
-    constructor(title, price) {
-        super(title, price);
-    }
+class BasketItem extends GoodsItem {
+  constructor(...args) {
+    super(...args);
+    this.count = 0;
+  }
 
-    addItem() {
-    }
+  addOne() {}
 
-    deleteItem() {
-    }
-
-    render() {
-        return `<span>Товар ${this.title} цена ${this.price}</span>`;
-    }
+  removeOne() {}
 }
 
 const list = new GoodsList();
-list.fetchGoods();
-list.render();
-console.log(list.getTotalSum());
+list.fetchGoods(() => {
+  list.render('.goods-list', 'index')
+}, 'catalogData');
+
+const listBasket = new Basket();
+listBasket.getListItems()
+listBasket.addItem()
+listBasket.deleteItem()
