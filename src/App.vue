@@ -4,54 +4,55 @@
       <div class="d-flex flex-column flex-md-row align-items-center p-3 px-md-4 mb-3 bg-white border-bottom shadow-sm">
       <h5 class="my-0 mr-md-auto font-weight-normal">E-Shop</h5>      
       <input v-model="searchLine" type="text" class="goods-search" />
-      <button @click="filterGoods" class="btn btn-outline-primary search-button" type="button">Искать</button>
-      <button @click="isVisibleCart" class="btn btn-outline-primary cart-button" type="button">Корзина</button>
+      <Search :goods="filteredGoods" />
+      <button class="btn btn-outline-primary cart-button" type="button" @click="toggleCartStatus">Корзина</button>
       </div>
     </header>
-    <main>      
-      <div style="text-align: center;">Товары:</div>
-        <div class="goods-list">
-          <div v-for="item in filteredGoods" :key="item.id_product" class='goods-item'>
-            <div class="col text-center border border-dark">
-              <div class="card-body">
-                <ul class="list-unstyled mt-3 mb-4">
-                  <li>{{ item.product_name }}</li>
-                </ul>
-                <h1 class="card-title pricing-card-title">{{ item.price }}</h1>
-                <button type="button" class="btn btn-lg btn-block btn-outline-primary">Добавить</button>
-              </div>
-            </div>
-         </div>
-      </div>
-      <br />
-      <hr>
-      <div v-show="value" style="text-align: center;">Корзина:
-        <div class="cart-list">
-        <div v-for="item in basketItem " :key="item.id_product" class='goods-item'>
-            <div class="col text-center border border-dark">
-              <div class="card-body">
-                <ul class="list-unstyled mt-3 mb-4">
-                  <li>{{ item.product_name }}</li>
-                </ul>
-                <h1 class="card-title pricing-card-title">{{ item.price }}</h1>
-                <button type="button" class="btn btn-lg btn-block btn-outline-primary">Добавить</button>
-              </div>
-            </div>
-         </div>
-        </div>
+    <main>
+      <GoodsList :goods="filteredGoods" />      
+      <div v-show="isVisibleCart" style="text-align: center;" class="cart">
+      <Cart :items="basketItem"/>
       </div>
     </main>
   </div>
 </template>
 
 <script>
+import GoodsList from './components/GoodsList';
+import Cart from './components/Cart';
+import Search from './components/Search';
+
 const API_URL = 'https://raw.githubusercontent.com/GeekBrainsTutorial/online-store-api/master/responses'
 export default {
+  components: {
+    GoodsList,
+    Cart,
+    Search,
+  },
+  props: {
+    search: {
+      type: String,
+      default: () => '',
+    },
+  },
+
   data: () => ({
     goods: [],
     filteredGoods: [],
-    searchLine: "",
-    value: 0,
+    basketItem: [ // Данные для отладки
+      {
+        "id_product": 123,
+        "product_name": "Ноутбук",
+        "price": 45600
+        },
+        {
+        "id_product": 456,
+        "product_name": "Мышка",
+        "price": 1000
+        }
+    ],
+    searchLine: '',
+    isVisibleCart: false,
   }),
   mounted() {
     this.makeGETRequest(`${API_URL}/catalogData.json`)
@@ -71,23 +72,16 @@ export default {
       this.filteredGoods = this.goods.filter(good => regexp.test(good.product_name));
     },
 
-    isVisibleCart() {
-      if (this.value == 1) {
-        this.value = 0;
-      }
-      else{
-        this.value = 1;
-      }
-      console.log(this.value);
+    toggleCartStatus() {
+      this.isVisibleCart = !this.isVisibleCart;
     }
   },
   
-  // watch: { // быстрый поиск 
-  //   searchLine() { 
-  //     const regexp = new RegExp(this.searchLine, 'i');
-  //     this.filteredGoods = this.goods.filter(good => regexp.test(good.product_name));
-  //   },
-  // },
+  watch: { 
+    searchLine() { 
+      this.filterGoods();
+    },
+  },
 }
 </script>
 
@@ -113,14 +107,17 @@ html {
   min-width: 220px;
 }
 
-.goods-list{
-  display: flex;
-  justify-content: space-around;
-  flex-wrap: wrap
-}
-
-.col{
-  margin: 10px;
+.cart {
+  box-shadow: 0px 0px 8px 2px rgba(34, 60, 80, 0.2);
+  padding: 20px;
+  width: 800px;
+  height: 500px;
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background-color: white;
+  overflow: auto;
 }
 
 </style>
